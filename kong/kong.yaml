@@ -1,0 +1,201 @@
+_format_version: "3.0"
+_transform: true
+
+########################################################
+# SERVICES
+########################################################
+
+services:
+  - name: apigee-migration-tailor-api-v5
+    host: apigee-migration-tailor-api-v5-upstream
+    port: 443
+    protocol: https
+    path: /
+    retries: 5
+    connect_timeout: 60000
+    write_timeout: 60000
+    read_timeout: 60000
+    enabled: true
+    tags:
+      - migrated-by:forgeshift-e2k-migrator
+      - apigee-proxy:apigee-migration-tailor-api-v5
+      - e2k-proxy-id:PX-DAC47961ACC4
+    routes:
+      - name: apigee-migration-tailor-api-v5-route-get-pet-by-id
+        protocols:
+          - http
+          - https
+        methods:
+          - GET
+        paths:
+          - ~/api/v5/pet/[^/]+
+        strip_path: false
+        preserve_host: false
+        https_redirect_status_code: 426
+        regex_priority: 0
+        path_handling: v0
+        request_buffering: true
+        response_buffering: true
+        tags:
+          - apigee-strip-len:7
+          - migrated-by:forgeshift-e2k-migrator
+          - apigee-proxy:apigee-migration-tailor-api-v5
+          - e2k-proxy-id:PX-DAC47961ACC4
+
+########################################################
+# PLUGINS
+########################################################
+
+plugins:
+  - name: pre-function
+    service: apigee-migration-tailor-api-v5
+    enabled: true
+    protocols:
+      - grpc
+      - grpcs
+      - http
+      - https
+    config:
+      access:
+        - "-- Apigee path rewrite (apigee-kong-migrator)\nlocal route        = kong.router.get_route()\nlocal service      = kong.router.get_service()\nlocal service_path = (service and service.path) or \"/\"\n-- Check for apigee-strip-len tag set on suffix routes during migration\nlocal strip_len = nil\nif route and route.tags then\n  for _, tag in ipairs(route.tags) do\n    if tag:sub(1, 17) == \"apigee-strip-len:\" then\n      strip_len = tonumber(tag:sub(18))\n      break\n    end\n  end\nend\n-- Fall back to route path length if no tag (covers normal routes)\nif not strip_len then\n  local route_path = (route and route.paths and route.paths[1]) or \"/\"\n  if route_path:sub(1, 1) == \"~\" then route_path = route_path:sub(2) end\n  strip_len = #route_path\nend\nlocal incoming = kong.request.get_path()\nlocal suffix = \"/\"\nif #incoming >= strip_len then\n  suffix = incoming:sub(strip_len + 1)\nend\nif suffix == \"\" then suffix = \"/\" end\nlocal clean_target = service_path:gsub(\"/+$\", \"\")\nif suffix:sub(1, 1) ~= \"/\" then suffix = \"/\" .. suffix end\nkong.service.request.set_path(clean_target .. suffix)\n"
+      body_filter:
+        []
+      certificate:
+        []
+      functions:
+        []
+      header_filter:
+        []
+      log:
+        []
+      rewrite:
+        []
+      ws_client_frame:
+        []
+      ws_close:
+        []
+      ws_handshake:
+        []
+      ws_upstream_frame:
+        []
+    tags:
+      - global
+      - apigee-path-rewrite
+  - name: acl
+    service: apigee-migration-tailor-api-v5
+    enabled: true
+    protocols:
+      - grpc
+      - grpcs
+      - http
+      - https
+    config:
+      allow:
+        - apigee-migration-tailor-product
+        - product-204
+        - Apigee-Kong-Tailor-Product
+      allow_when: null
+      always_use_authenticated_groups: false
+      deny: null
+      deny_when: null
+      hide_groups_header: false
+      include_consumer_groups: false
+    tags:
+      - migrated-from-apigee
+      - access-graph
+      - migrated-by:forgeshift-e2k-migrator
+      - apigee-proxy:apigee-migration-tailor-api-v5
+      - e2k-proxy-id:PX-DAC47961ACC4
+  - name: pre-function
+    service: apigee-migration-tailor-api-v5
+    enabled: true
+    protocols:
+      - grpc
+      - grpcs
+      - http
+      - https
+    config:
+      access:
+        - "-- Apigee path rewrite (apigee-kong-migrator)\nlocal route        = kong.router.get_route()\nlocal service      = kong.router.get_service()\nlocal service_path = (service and service.path) or \"/\"\n-- Check for apigee-strip-len tag set on suffix routes during migration\nlocal strip_len = nil\nif route and route.tags then\n  for _, tag in ipairs(route.tags) do\n    if tag:sub(1, 17) == \"apigee-strip-len:\" then\n      strip_len = tonumber(tag:sub(18))\n      break\n    end\n  end\nend\n-- Fall back to route path length if no tag (covers normal routes)\nif not strip_len then\n  local route_path = (route and route.paths and route.paths[1]) or \"/\"\n  if route_path:sub(1, 1) == \"~\" then route_path = route_path:sub(2) end\n  strip_len = #route_path\nend\nlocal incoming = kong.request.get_path()\nlocal suffix = \"/\"\nif #incoming >= strip_len then\n  suffix = incoming:sub(strip_len + 1)\nend\nif suffix == \"\" then suffix = \"/\" end\nlocal clean_target = service_path:gsub(\"/+$\", \"\")\nif suffix:sub(1, 1) ~= \"/\" then suffix = \"/\" .. suffix end\nkong.service.request.set_path(clean_target .. suffix)\n"
+      body_filter:
+        []
+      certificate:
+        []
+      functions:
+        []
+      header_filter:
+        []
+      log:
+        []
+      rewrite:
+        []
+      ws_client_frame:
+        []
+      ws_close:
+        []
+      ws_handshake:
+        []
+      ws_upstream_frame:
+        []
+    tags:
+      - migrated-from-apigee
+      - apigee-path-rewrite
+      - migrated-by:forgeshift-e2k-migrator
+      - apigee-proxy:apigee-migration-tailor-api-v5
+      - e2k-proxy-id:PX-DAC47961ACC4
+  - name: key-auth
+    service: apigee-migration-tailor-api-v5
+    enabled: true
+    protocols:
+      - grpc
+      - grpcs
+      - http
+      - https
+      - ws
+      - wss
+    config:
+      anonymous: null
+      hide_credentials: true
+      identity_realms:
+        - id: null
+          region: null
+          scope: cp
+      key_in_body: false
+      key_in_header: true
+      key_in_query: false
+      key_names:
+        - apikey
+      principals:
+        directory: default
+        enabled: false
+        error_on_miss: true
+      realm: null
+      run_on_preflight: true
+    tags:
+      - migrated-by:forgeshift-e2k-migrator
+      - apigee-proxy:apigee-migration-tailor-api-v5
+      - e2k-proxy-id:PX-DAC47961ACC4
+
+########################################################
+# UPSTREAMS + TARGETS
+########################################################
+
+upstreams:
+  - name: apigee-migration-tailor-api-v5-upstream
+    algorithm: round-robin
+    slots: 10000
+    hash_on: none
+    hash_fallback: none
+    tags:
+      - migrated-from-apigee
+      - proxy:apigee-migration-tailor-api-v5
+      - migrated-by:forgeshift-e2k-migrator
+      - apigee-proxy:apigee-migration-tailor-api-v5
+      - e2k-proxy-id:PX-DAC47961ACC4
+    targets:
+      - target: mock.com:443
+        weight: 100
+        tags:
+          - migrated-by:forgeshift-e2k-migrator
+          - apigee-proxy:apigee-migration-tailor-api-v5
+          - e2k-proxy-id:PX-DAC47961ACC4
